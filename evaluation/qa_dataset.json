@@ -1,0 +1,42 @@
+[
+  {
+    "question": "What are the diagnostic criteria for diabetes according to the ICMR guidelines?",
+    "ground_truth": "Diabetes is diagnosed by fasting plasma glucose ≥126 mg/dL, 2-hour post 75 g glucose ≥200 mg/dL during OGTT, HbA1c ≥6.5%, or random plasma glucose ≥200 mg/dL with symptoms of diabetes."
+  },
+  {
+    "question": "What are the criteria for diagnosing prediabetes?",
+    "ground_truth": "Prediabetes includes impaired fasting glucose (IFG) and impaired glucose tolerance (IGT). Fasting plasma glucose is 100–125 mg/dL (ADA) or 110–125 mg/dL (WHO), 2-hour plasma glucose is 140–199 mg/dL, and HbA1c is 5.7–6.4%."
+  },
+  {
+    "question": "Who should be screened for type 2 diabetes according to the guideline?",
+    "ground_truth": "Screening should be performed in all individuals above 30 years of age and earlier in adults with risk factors such as family history of diabetes, obesity, hypertension, dyslipidemia, sedentary lifestyle, gestational diabetes history, cardiovascular disease, or PCOS."
+  },
+  {
+    "question": "What are the symptoms of diabetes mentioned in the guideline?",
+    "ground_truth": "Symptoms include polyuria, polydipsia, weight loss despite polyphagia, tiredness, weakness, generalized pruritus, recurrent urogenital infections, and delayed wound healing."
+  },
+  {
+    "question": "What are the blood pressure targets for patients with diabetes?",
+    "ground_truth": "Ideal blood pressure target is below 130/80 mmHg, satisfactory control is below 140/90 mmHg, and values above 140/90 mmHg are considered unsatisfactory."
+  },
+  {
+    "question": "What HbA1c target is recommended for most adults with diabetes?",
+    "ground_truth": "The recommended HbA1c target for most adults with diabetes is below 7%, while 7–8% is considered satisfactory depending on patient condition."
+  },
+  {
+    "question": "What lifestyle goals are recommended in diabetes management?",
+    "ground_truth": "Lifestyle goals include optimum nutrition, maintaining glycemic control, achieving healthy body weight, improving lipid levels, increasing physical activity, stress management, and avoiding smoking, tobacco, and excess alcohol."
+  },
+  {
+    "question": "What are the dietary carbohydrate recommendations for diabetes patients?",
+    "ground_truth": "Carbohydrates should provide around 55–60% of total energy intake and should mainly come from complex carbohydrates such as whole grains, legumes, peas, beans, oats, barley, and low glycemic index fruits."
+  },
+  {
+    "question": "What is the recommended daily salt intake for diabetic patients with hypertension?",
+    "ground_truth": "For diabetic patients with hypertension, salt intake should be reduced to less than 3 g per day."
+  },
+  {
+    "question": "What are the first goals of diabetes management according to the guideline?",
+    "ground_truth": "The goals include relief from symptoms, glycemic control, prevention of acute complications, management of obesity, hypertension and dyslipidemia, and prevention of microvascular and macrovascular complications."
+  }
+]
