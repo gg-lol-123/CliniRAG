@@ -1,7 +1,6 @@
 # app.py
 
 import gradio as gr
-
 from src.rag_pipeline import RAGPipeline
 
 
@@ -10,65 +9,94 @@ pipeline = RAGPipeline()
 print("CliniRAG UI Ready.")
 
 
-def ask_clinirag(query):
+def ask_clinirag(query, history):
     """
-    Gradio interface function
+    Chat-style interface for CliniRAG
     """
 
     if not query.strip():
-        return "Please enter a valid medical question.", ""
+        return history, ""
 
-    result = pipeline.run(query)
+    try:
+        result = pipeline.run(query)
 
-    answer = result["answer"]
+        answer = result.get("answer", "No answer generated.")
+        citations_list = result.get("citations", [])
 
-    citations = "\n".join(
-        [f"- {citation}" for citation in result["citations"]]
-    )
+        # Format citations nicely
+        if citations_list:
+            citations = "\n".join(
+                [f"• {c}" for c in citations_list]
+            )
+        else:
+            citations = "No citations available."
 
-    if not citations:
-        citations = "No citations available."
+        # Add to chat history
+        history.append((query, answer))
 
-    return answer, citations
+        return history, citations
+
+    except Exception as e:
+        error_msg = f"⚠️ Error: {str(e)}"
+        history.append((query, error_msg))
+        return history, "No citations available."
 
 
-with gr.Blocks(title="CliniRAG") as demo:
+with gr.Blocks(title="CliniRAG", theme=gr.themes.Soft()) as demo:
+
     gr.Markdown(
         """
-        # CliniRAG
-        ### Production-Grade Medical Clinical Guideline RAG System
+        # 🏥 CliniRAG
+        ### Clinical Guideline QA System (RAG + Hybrid Retrieval + Reranking)
 
-        Ask questions about:
+        Ask evidence-based questions about:
         - Diabetes
         - Hypertension
         - Obesity
         - Clinical treatment guidelines
+
+        ⚠️ This system provides guideline-based information, not medical advice.
         """
     )
 
+    chatbot = gr.Chatbot(label="CliniRAG Assistant")
+
     with gr.Row():
         query_input = gr.Textbox(
-            label="Ask your medical question",
-            placeholder="Example: When should insulin therapy begin for type 2 diabetes?",
-            lines=3
+            placeholder="Ask a medical question...",
+            show_label=False,
+            lines=2
         )
-
-    submit_btn = gr.Button("Generate Answer")
-
-    answer_output = gr.Textbox(
-        label="Grounded Answer",
-        lines=12
-    )
+        submit_btn = gr.Button("Ask")
 
     citation_output = gr.Textbox(
         label="Citations",
         lines=8
     )
 
+    clear_btn = gr.Button("Clear Chat")
+
+    # Button click
     submit_btn.click(
         fn=ask_clinirag,
-        inputs=query_input,
-        outputs=[answer_output, citation_output]
+        inputs=[query_input, chatbot],
+        outputs=[chatbot, citation_output],
+        show_progress=True
+    )
+
+    # Enter key support
+    query_input.submit(
+        fn=ask_clinirag,
+        inputs=[query_input, chatbot],
+        outputs=[chatbot, citation_output],
+        show_progress=True
+    )
+
+    # Clear chat
+    clear_btn.click(
+        fn=lambda: ([], ""),
+        inputs=[],
+        outputs=[chatbot, citation_output]
     )
 
 
