@@ -1,7 +1,13 @@
 # tests/test_citations.py
 
 from src.rag_pipeline import RAGPipeline
+import os
+import pytest
 
+@pytest.mark.skipif(
+    not os.getenv("GEMINI_API_KEY"),
+    reason="Skipping test: GEMINI_API_KEY not set"
+)
 
 def test_answer_contains_citations():
     """
