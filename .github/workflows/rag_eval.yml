@@ -2,14 +2,9 @@ name: RAG Evaluation Pipeline
 
 on:
   push:
-    branches:
-      - main
-      - master
-
+    branches: [main, master]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main, master]
 
 jobs:
   evaluate-rag:
@@ -24,17 +19,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
       - name: Install Dependencies
         run: |
-          uv sync
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Create .env file
+      - name: Run Tests
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
-
-      - name: Run RAG Evaluation
-        run: |
-          uv run python -m evaluation.evaluate
+          python -m pytest
