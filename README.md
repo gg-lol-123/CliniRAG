@@ -130,6 +130,7 @@ INSTALLATION
 1. Clone Repository
 
 git clone https://github.com/gg-lol-123/CliniRAG.git
+
 cd CliniRAG
 
 --------------------------------------------------
