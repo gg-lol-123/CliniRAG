@@ -2,6 +2,7 @@
 
 import os
 import yaml
+
 from dotenv import load_dotenv
 from litellm import completion
 
@@ -9,29 +10,24 @@ from litellm import completion
 class LLMProvider:
     """
     Handles:
-    1. LiteLLM connection
-    2. Gemini API through LiteLLM
-    3. Final grounded answer generation
-    4. Prompts loaded from config/prompts.yaml
+    1. Gemini generation
+    2. Ollama fallback generation
+    3. Prompt loading
+    4. Reliable answer generation
     """
 
     def __init__(
         self,
-        model_name="gemini/gemini-2.5-flash-lite"
+        primary_model="gemini/gemini-2.5-flash-lite",
+        fallback_model="ollama/llama3.2"
     ):
         load_dotenv()
 
-        self.model_name = model_name
+        self.primary_model = primary_model
+        self.fallback_model = fallback_model
 
-        api_key = os.getenv("GEMINI_API_KEY")
-
-        if not api_key:
-            raise ValueError(
-                "GEMINI_API_KEY not found. Please set it in your .env file."
-            )
-
-        # LiteLLM uses this internally
-        os.environ["GEMINI_API_KEY"] = api_key
+        # Gemini API availability
+        self.api_key = os.getenv("GEMINI_API_KEY")
 
         self.prompts = self.load_prompts()
 
@@ -39,6 +35,7 @@ class LLMProvider:
         """
         Load prompts from config/prompts.yaml
         """
+
         with open(
             "config/prompts.yaml",
             "r",
@@ -46,41 +43,124 @@ class LLMProvider:
         ) as file:
             return yaml.safe_load(file)
 
+    def _build_prompt(
+        self,
+        query: str,
+        context: str
+    ) -> str:
+        """
+        Build final grounded prompt
+        """
+
+        prompt_template = self.prompts[
+            "answer_generation_prompt"
+        ]
+
+        return prompt_template.format(
+            query=query,
+            context=context
+        )
+
+    def _generate_with_gemini(
+        self,
+        prompt: str
+    ) -> str:
+        """
+        Generate using Gemini
+        """
+
+        print("\nUsing Gemini...\n")
+
+        response = completion(
+            model=self.primary_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.1
+        )
+
+        return response["choices"][0]["message"]["content"]
+
+    def _generate_with_ollama(
+        self,
+        prompt: str
+    ) -> str:
+        """
+        Generate using Ollama
+        """
+
+        print("\nSwitching to Ollama fallback...\n")
+
+        response = completion(
+            model=self.fallback_model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.1
+        )
+
+        return response["choices"][0]["message"]["content"]
+
     def generate_answer(
         self,
         query: str,
         context: str
     ) -> str:
         """
-        Generate final answer using ONLY provided context
-        with prompt versioning support.
+        Generate grounded answer
+        with Gemini -> Ollama fallback.
         """
 
-        prompt_template = self.prompts["answer_generation_prompt"]
-
-        final_prompt = prompt_template.format(
+        final_prompt = self._build_prompt(
             query=query,
             context=context
         )
 
+        # -----------------------------------
+        # Try Gemini first
+        # -----------------------------------
+
+        if self.api_key:
+
+            try:
+
+                answer = self._generate_with_gemini(
+                    final_prompt
+                )
+
+                return answer.strip()
+
+            except Exception as gemini_error:
+
+                print("\nGemini failed.")
+                print(
+                    f"Reason: {str(gemini_error)}"
+                )
+
+        # -----------------------------------
+        # Ollama fallback
+        # -----------------------------------
+
         try:
-            response = completion(
-                model=self.model_name,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": final_prompt
-                    }
-                ],
-                temperature=0.1
+
+            answer = self._generate_with_ollama(
+                final_prompt
             )
 
-            final_answer = response["choices"][0]["message"]["content"]
+            return answer.strip()
 
-            return final_answer.strip()
+        except Exception as ollama_error:
 
-        except Exception as e:
-            print(f"LLM Error: {str(e)}")
+            print("\nOllama fallback failed.")
+            print(
+                f"Reason: {str(ollama_error)}"
+            )
 
             return (
                 "I cannot generate a safe medical answer at this time."
@@ -88,14 +168,12 @@ class LLMProvider:
 
 
 if __name__ == "__main__":
-    """
-    Quick test:
-    python src/llm_provider.py
-    """
 
     provider = LLMProvider()
 
-    sample_query = "When should insulin therapy begin for diabetes?"
+    sample_query = (
+        "When should insulin therapy begin for diabetes?"
+    )
 
     sample_context = """
 Source: diabetes_guidelines.pdf

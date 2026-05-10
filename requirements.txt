@@ -19,3 +19,5 @@ torch
 scikit-learn
 numpy
 pandas
+fastapi
+uvicorn

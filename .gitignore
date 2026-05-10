@@ -27,3 +27,6 @@ Thumbs.db
 
 # Processed cache files (optional)
 data/processed/*.json
+
+# Hugging Face cache
+hf_cache/
