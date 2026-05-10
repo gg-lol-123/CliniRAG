@@ -17,7 +17,7 @@ class VectorStoreManager:
     def __init__(
         self,
         persist_directory: str = "chroma_db",
-        embedding_model: str = "BAAI/bge-base-en-v1.5"
+        embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     ):
         self.persist_directory = persist_directory
 
