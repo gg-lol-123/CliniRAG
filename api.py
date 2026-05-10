@@ -2,10 +2,10 @@
 
 import time
 
-from src.logger_config import logger
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from src.logger_config import logger
 from src.rag_pipeline import RAGPipeline
 
 
@@ -18,13 +18,9 @@ app = FastAPI(
 )
 
 
-# Initialize RAG pipeline
+# Lazy-loaded pipeline
 
-print("Initializing CliniRAG Backend...")
-
-pipeline = RAGPipeline()
-
-print("CliniRAG Backend Ready.")
+pipeline = None
 
 
 # Request schema
@@ -49,6 +45,13 @@ def root():
     }
 
 
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy"
+    }
+
+
 # Query endpoint
 
 @app.post(
@@ -56,6 +59,8 @@ def root():
     response_model=QueryResponse
 )
 def query_rag(request: QueryRequest):
+
+    global pipeline
 
     start_time = time.time()
 
@@ -73,6 +78,16 @@ def query_rag(request: QueryRequest):
         )
 
     try:
+
+        # Initialize pipeline only when needed
+
+        if pipeline is None:
+
+            logger.info("Initializing CliniRAG Backend...")
+
+            pipeline = RAGPipeline()
+
+            logger.info("CliniRAG Backend Ready.")
 
         result = pipeline.run(question)
 
