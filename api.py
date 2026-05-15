@@ -191,8 +191,7 @@ Ask evidence-based questions about:
 - Clinical treatment guidelines
 
 ⚠️ This system provides guideline-based information, not medical advice.
-""",
-    theme="soft"
+"""
 )
 
 
