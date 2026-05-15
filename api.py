@@ -1,6 +1,7 @@
 # api.py
 
 import time
+import asyncio
 import gradio as gr
 
 from fastapi import FastAPI
@@ -100,7 +101,11 @@ async def query_rag(request: QueryRequest):
 
         rag_pipeline = get_pipeline()
 
-        result = rag_pipeline.run(question)
+        # Run blocking pipeline in separate thread
+        result = await asyncio.to_thread(
+            rag_pipeline.run,
+            question
+        )
 
         total_time = round(
             time.time() - start_time,
@@ -124,7 +129,6 @@ async def query_rag(request: QueryRequest):
             answer=f"Error: {str(e)}",
             citations=[]
         )
-
 
 # ============================================
 # Gradio Chat Function
