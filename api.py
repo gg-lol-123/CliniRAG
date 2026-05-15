@@ -1,7 +1,6 @@
 # api.py
 
 import time
-import requests
 import gradio as gr
 
 from fastapi import FastAPI
@@ -49,6 +48,7 @@ class QueryResponse(BaseModel):
 
 @app.get("/health")
 def health():
+
     return {
         "status": "healthy"
     }
@@ -152,6 +152,8 @@ def ask_clinirag(message, history):
             []
         )
 
+        # Format citations
+
         if citations_list:
 
             citations = "\n".join(
@@ -162,15 +164,11 @@ def ask_clinirag(message, history):
 
             citations = "No citations available."
 
-        history.append({
-            "role": "user",
-            "content": message
-        })
+        # Older Gradio format
 
-        history.append({
-            "role": "assistant",
-            "content": answer
-        })
+        history.append(
+            (message, answer)
+        )
 
         return history, citations
 
@@ -178,17 +176,19 @@ def ask_clinirag(message, history):
 
         error_message = f"⚠️ Error: {str(e)}"
 
-        history.append({
-            "role": "assistant",
-            "content": error_message
-        })
+        history.append(
+            (message, error_message)
+        )
 
         return history, "No citations available."
 
 
+# ============================================
+# Gradio UI
+# ============================================
+
 with gr.Blocks(
-    title="CliniRAG",
-    theme=gr.themes.Soft()
+    title="CliniRAG"
 ) as demo:
 
     gr.Markdown(
@@ -209,7 +209,6 @@ with gr.Blocks(
 
     chatbot = gr.Chatbot(
         label="CliniRAG Assistant",
-        type="messages",
         height=500
     )
 
@@ -232,7 +231,11 @@ with gr.Blocks(
         lines=8
     )
 
-    clear_btn = gr.Button("Clear Chat")
+    clear_btn = gr.Button(
+        "Clear Chat"
+    )
+
+    # Submit button
 
     submit_btn.click(
         fn=ask_clinirag,
@@ -241,12 +244,16 @@ with gr.Blocks(
         show_progress=True
     )
 
+    # Enter key support
+
     query_input.submit(
         fn=ask_clinirag,
         inputs=[query_input, chatbot],
         outputs=[chatbot, citation_output],
         show_progress=True
     )
+
+    # Clear button
 
     clear_btn.click(
         fn=lambda: ([], ""),
