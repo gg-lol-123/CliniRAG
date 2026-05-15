@@ -4,7 +4,6 @@ import time
 import gradio as gr
 
 from fastapi import FastAPI
-from gradio.routes import mount_gradio_app
 from pydantic import BaseModel
 
 from src.logger_config import logger
@@ -17,7 +16,7 @@ from src.rag_pipeline import RAGPipeline
 
 app = FastAPI(
     title="CliniRAG API",
-    description="Production-Grade Clinical RAG Backend",
+    description="Clinical Guideline RAG System",
     version="1.0.0"
 )
 
@@ -43,11 +42,42 @@ class QueryResponse(BaseModel):
 
 
 # ============================================
+# Initialize Pipeline
+# ============================================
+
+def get_pipeline():
+
+    global pipeline
+
+    if pipeline is None:
+
+        logger.info("Initializing CliniRAG Backend...")
+
+        pipeline = RAGPipeline()
+
+        logger.info("CliniRAG Backend Ready.")
+
+    return pipeline
+
+
+# ============================================
+# Root Endpoint
+# ============================================
+
+@app.get("/")
+async def root():
+
+    return {
+        "message": "CliniRAG API is running"
+    }
+
+
+# ============================================
 # Health Endpoint
 # ============================================
 
 @app.get("/health")
-def health():
+async def health():
 
     return {
         "status": "healthy"
@@ -62,9 +92,7 @@ def health():
     "/query",
     response_model=QueryResponse
 )
-def query_rag(request: QueryRequest):
-
-    global pipeline
+async def query_rag(request: QueryRequest):
 
     start_time = time.time()
 
@@ -81,17 +109,9 @@ def query_rag(request: QueryRequest):
 
     try:
 
-        # Lazy load pipeline
+        rag_pipeline = get_pipeline()
 
-        if pipeline is None:
-
-            logger.info("Initializing CliniRAG Backend...")
-
-            pipeline = RAGPipeline()
-
-            logger.info("CliniRAG Backend Ready.")
-
-        result = pipeline.run(question)
+        result = rag_pipeline.run(question)
 
         total_time = round(
             time.time() - start_time,
@@ -112,162 +132,76 @@ def query_rag(request: QueryRequest):
         logger.error(f"Pipeline Error: {str(e)}")
 
         return QueryResponse(
-            answer="Internal server error occurred.",
+            answer=f"Error: {str(e)}",
             citations=[]
         )
 
 
 # ============================================
-# Gradio Frontend
+# Gradio Chat Function
 # ============================================
 
-def ask_clinirag(message, history):
-
-    global pipeline
-
-    if not message.strip():
-        return history, ""
+def chat_function(message, history):
 
     try:
 
-        # Lazy load pipeline
+        rag_pipeline = get_pipeline()
 
-        if pipeline is None:
-
-            logger.info("Initializing CliniRAG Backend...")
-
-            pipeline = RAGPipeline()
-
-            logger.info("CliniRAG Backend Ready.")
-
-        result = pipeline.run(message)
+        result = rag_pipeline.run(message)
 
         answer = result.get(
             "answer",
             "No answer generated."
         )
 
-        citations_list = result.get(
+        citations = result.get(
             "citations",
             []
         )
 
-        # Format citations
+        if citations:
 
-        if citations_list:
+            answer += "\n\n📚 Citations:\n"
 
-            citations = "\n".join(
-                [f"• {c}" for c in citations_list]
+            answer += "\n".join(
+                [f"• {c}" for c in citations]
             )
 
-        else:
-
-            citations = "No citations available."
-
-        # Older Gradio format
-
-        history.append(
-            (message, answer)
-        )
-
-        return history, citations
+        return answer
 
     except Exception as e:
 
-        error_message = f"⚠️ Error: {str(e)}"
-
-        history.append(
-            (message, error_message)
-        )
-
-        return history, "No citations available."
+        return f"⚠️ Error: {str(e)}"
 
 
 # ============================================
 # Gradio UI
 # ============================================
 
-with gr.Blocks(
-    title="CliniRAG"
-) as demo:
+demo = gr.ChatInterface(
+    fn=chat_function,
+    title="🏥 CliniRAG",
+    description="""
+Clinical Guideline QA System
 
-    gr.Markdown(
-        """
-        # 🏥 CliniRAG
+Ask evidence-based questions about:
+- Diabetes
+- Hypertension
+- Obesity
+- Clinical treatment guidelines
 
-        ### Clinical Guideline QA System
-
-        Ask evidence-based questions about:
-        - Diabetes
-        - Hypertension
-        - Obesity
-        - Clinical treatment guidelines
-
-        ⚠️ This system provides guideline-based information, not medical advice.
-        """
-    )
-
-    chatbot = gr.Chatbot(
-        label="CliniRAG Assistant",
-        height=500
-    )
-
-    with gr.Row():
-
-        query_input = gr.Textbox(
-            placeholder="Ask a clinical question...",
-            show_label=False,
-            lines=2,
-            scale=8
-        )
-
-        submit_btn = gr.Button(
-            "Ask",
-            scale=1
-        )
-
-    citation_output = gr.Textbox(
-        label="Citations",
-        lines=8
-    )
-
-    clear_btn = gr.Button(
-        "Clear Chat"
-    )
-
-    # Submit button
-
-    submit_btn.click(
-        fn=ask_clinirag,
-        inputs=[query_input, chatbot],
-        outputs=[chatbot, citation_output],
-        show_progress=True
-    )
-
-    # Enter key support
-
-    query_input.submit(
-        fn=ask_clinirag,
-        inputs=[query_input, chatbot],
-        outputs=[chatbot, citation_output],
-        show_progress=True
-    )
-
-    # Clear button
-
-    clear_btn.click(
-        fn=lambda: ([], ""),
-        inputs=[],
-        outputs=[chatbot, citation_output]
-    )
+⚠️ This system provides guideline-based information, not medical advice.
+""",
+    theme="soft"
+)
 
 
 # ============================================
 # Mount Gradio into FastAPI
 # ============================================
 
-app = mount_gradio_app(
+app = gr.mount_gradio_app(
     app,
     demo,
-    path="/"
+    path="/chat"
 )
