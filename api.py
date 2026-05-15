@@ -60,17 +60,6 @@ def get_pipeline():
     return pipeline
 
 
-# ============================================
-# Root Endpoint
-# ============================================
-
-@app.get("/")
-async def root():
-
-    return {
-        "message": "CliniRAG API is running"
-    }
-
 
 # ============================================
 # Health Endpoint
@@ -202,5 +191,5 @@ Ask evidence-based questions about:
 app = gr.mount_gradio_app(
     app,
     demo,
-    path="/chat"
+    path="/"
 )
